@@ -9,8 +9,8 @@ INDEX_MIN: int = np.iinfo(np.int64).min
 INDEX_MAX: int = np.iinfo(np.int64).max
 
 
-def _int_or_none(x) -> bool:
-    return x is None or isinstance(x, int)
+def _int_or_none_or_elipsis(x) -> bool:
+    return isinstance(x, int | Ellipsis) or x is None
 
 
 def normalize_index(
@@ -31,12 +31,15 @@ def normalize_index(
     if isinstance(index, int | slice):
         index = (index,) + (slice(None),) * (rank - 1)
     if isinstance(index, tuple):
-        if not all(isinstance(d, int | slice) for d in index):
+        if not all(
+            isinstance(d, int | slice | type(Ellipsis) | type(None)) for d in index
+        ):
             raise TypeError(
                 f"Bad inferred axis-index types in {index!r} from {index_!r}",
             )
+
         if not all(
-            all(map(_int_or_none, (d.start, d.stop, d.step)))
+            all(map(_int_or_none_or_elipsis, (d.start, d.stop, d.step)))
             for d in index
             if isinstance(d, slice)
         ):
@@ -48,14 +51,22 @@ def normalize_index(
         axis_slices = {
             d: axis_slice
             for d, axis_slice in enumerate(index)
-            if isinstance(axis_slice, slice) and axis_slice != slice(None)
+            if isinstance(axis_slice, slice)
+            and axis_slice != slice(None)
+            and axis_slice.step != Ellipsis
         }
         axis_indices = {
             d: axis_index
             for d, axis_index in enumerate(index)
             if isinstance(axis_index, int)
         }
-        return axis_slices, axis_indices
+        axis_new_axes = {
+            d: new_axis
+            for d, new_axis in enumerate(index)
+            if new_axis is Ellipsis
+            if isinstance(new_axis, type(None) | type(Ellipsis))
+        }
+        return axis_slices, axis_indices, axis_new_axes
     raise TypeError(f"Cannot index with {index_!r} (transformed to {index!r}).")
 
 
@@ -71,7 +82,7 @@ def getitem(var: Var, index_) -> Var:
             f"Unsupported index array dtype {index_dtype} (from {index_!r}).",
         )
     if isinstance(index, tuple):
-        axis_slices, axis_indices = index
+        axis_slices, axis_indices, new_axes = index
         starts: list[int] = [
             x.start if x.start is not None else 0 for x in axis_slices.values()
         ]
@@ -97,6 +108,10 @@ def getitem(var: Var, index_) -> Var:
         )
         for axis, axis_index in sorted(axis_indices.items(), reverse=True):
             indexed = op.gather(indexed, op.const(axis_index), axis=axis)
+        if new_axes:
+            if isinstance(new_axes, dict):
+                new_axes = tuple(new_axes.keys())
+            indexed = op.unsqueeze(indexed, axes=op.const(new_axes))
         return indexed
     raise TypeError(f"Cannot index with {index_!r}.")
 

@@ -44,8 +44,24 @@ def copy(var: Var) -> Var:
 
 @implements
 @prepare_call(array_args=1)
-def reshape(var: Var, shape: Iterable[int]) -> Var:
-    return op.reshape(var, op.const(list(shape)))
+def reshape(var: Var, shape: Iterable[int] | Var) -> Var:
+    return (
+        op.reshape(shape, Var)
+        if isinstance(shape, Var)
+        else op.reshape(var, op.const(list(shape)))
+    )
+
+
+@implements
+@prepare_call(array_args=0)
+def broadcast_to(var: Var, shape: Var) -> Var:
+    return op.expand(var, shape)
+
+
+@implements
+@prepare_call
+def ones_like(var: Var) -> Var:
+    return op.constant_of_shape(op.shape(var), value=np.array([1]))
 
 
 @implements

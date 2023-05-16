@@ -31,6 +31,9 @@ class SpoxArray(NumpyDispatchMixin):
             self._var = var
         return self._var
 
+    def __array__(self):
+        return NotImplemented
+
     @property
     def dtype(self) -> np.dtype:
         return self._var.unwrap_tensor().dtype
@@ -114,7 +117,7 @@ def to_var(
         return x if dtype is None or x_dtype == dtype else op.cast(x, to=dtype)
     if casting is not None and not np.can_cast(x, dtype, casting):
         raise TypeError(f"Cannot cast {x} to {dtype} with {casting=}.")
-    return op.const(x, dtype)
+    return op.const(np.array(x, dtype=dtype))
 
 
 def promote(
