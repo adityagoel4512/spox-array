@@ -43,6 +43,12 @@ def copy(var: Var) -> Var:
 
 
 @implements
+@prepare_call
+def shape(var: Var) -> Var:
+    return op.shape(var)
+
+
+@implements
 @prepare_call(array_args=1)
 def reshape(var: Var, shape: Iterable[int] | Var) -> Var:
     return (
