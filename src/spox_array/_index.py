@@ -146,6 +146,12 @@ def setitem(var: Var, index_, updates_: Var | npt.ArrayLike) -> Var:
         op.gather(op.shape(indices), op.const([-1])),
         op.const([-1]),
     )
-    target_shape = op.concat([index_path_shape, update_shape], axis=0)
+    # TODO: concat empty without checking shape
+    (index_path_rank,) = index_path_shape.unwrap_tensor().shape
+    (update_rank,) = update_shape.unwrap_tensor().shape
+    if index_path_rank == update_rank == 0:
+        target_shape = index_path_shape
+    else:
+        target_shape = op.concat([index_path_shape, update_shape], axis=0)
     updates_ = op.expand(updates_, target_shape)
     return op.scatter_nd(var, indices, updates_)
