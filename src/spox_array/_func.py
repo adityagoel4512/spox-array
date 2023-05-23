@@ -44,6 +44,30 @@ def copy(var: Var) -> Var:
 
 @implements
 @prepare_call
+def sort(var: Var) -> Var:
+    value, _ = op.top_k(
+        var,
+        op.gather(op.shape(var), op.const([0])),
+        sorted=1,
+        largest=0,
+    )
+    return value
+
+
+@implements
+@prepare_call
+def argsort(var: Var) -> Var:
+    _, indices = op.top_k(
+        var,
+        op.gather(op.shape(var), op.const([0])),
+        sorted=1,
+        largest=0,
+    )
+    return indices
+
+
+@implements
+@prepare_call
 def shape(var: Var) -> Var:
     return op.shape(var)
 
