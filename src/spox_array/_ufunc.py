@@ -56,7 +56,46 @@ def power(x: Var, y: Var) -> Var:
     return op.pow(x, y)
 
 
+# Comparison
+
+
+@prepare_ufunc_call
+def greater(x: Var, y: Var) -> Var:
+    return op.greater(x, y)
+
+
+@prepare_ufunc_call
+def greater_equal(x: Var, y: Var) -> Var:
+    return op.greater_or_equal(x, y)
+
+
+@prepare_ufunc_call
+def less(x: Var, y: Var) -> Var:
+    return op.less(x, y)
+
+
+@prepare_ufunc_call
+def less_equal(x: Var, y: Var) -> Var:
+    return op.less_or_equal(x, y)
+
+
+@prepare_ufunc_call
+def not_equal(x: Var, y: Var) -> Var:
+    return op.not_(op.equal(x, y))
+
+
+@prepare_ufunc_call
+def equal(x: Var, y: Var) -> Var:
+    # string equality is pending currently (https://github.com/microsoft/onnxruntime/issues/15061)
+    return op.equal(x, y)
+
+
 # Unary
+
+
+@prepare_ufunc_call
+def negative(x: Var) -> Var:
+    return op.neg(x)
 
 
 @prepare_ufunc_call
@@ -64,6 +103,11 @@ def isnan(x: Var) -> Var:
     if not np.issubdtype(x.unwrap_tensor().dtype, np.floating):
         return op.expand(op.const(False), op.shape(x))
     return op.isnan(x)
+
+
+@prepare_ufunc_call
+def invert(x: Var) -> Var:
+    return op.not_(x)
 
 
 # Unary - signs

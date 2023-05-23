@@ -49,10 +49,35 @@ def shape(var: Var) -> Var:
 
 
 @implements
+@prepare_call
+def all(var: Var, axis=None) -> Var:
+    if var.unwrap_tensor().dtype == np.bool_:
+        var = op.cast(var, to=np.int_)
+    return op.equal(op.reduce_min(var, keepdims=0, axes=axis), op.const(1))
+
+
+@implements
+@prepare_call
+def any(var: Var, axis=None) -> Var:
+    if var.unwrap_tensor().dtype == np.bool_:
+        var = op.cast(var, to=np.int_)
+    return op.equal(op.reduce_max(var, keepdims=0, axes=axis), op.const(1))
+
+
+@implements
+@prepare_call(array_args=0)
+def full_like(a: Var, fill_value: np.ndarray, dtype=None) -> Var:
+    result = op.constant_of_shape(op.shape(a), value=fill_value)
+    if dtype is not None:
+        result = op.cast(result, to=dtype)
+    return result
+
+
+@implements
 @prepare_call(array_args=1)
 def reshape(var: Var, shape: Iterable[int] | Var) -> Var:
     return (
-        op.reshape(shape, Var)
+        op.reshape(var, shape)
         if isinstance(shape, Var)
         else op.reshape(var, op.const(list(shape)))
     )
@@ -66,8 +91,14 @@ def broadcast_to(var: Var, shape: Var) -> Var:
 
 @implements
 @prepare_call
-def ones_like(var: Var) -> Var:
-    return op.constant_of_shape(op.shape(var), value=np.array([1]))
+def ones_like(var: Var, dtype=None) -> Var:
+    return full_like(var, np.array([1], dtype=dtype))
+
+
+@implements
+@prepare_call
+def zeros_like(var: Var, dtype=None) -> Var:
+    return full_like(var, np.array([0], dtype=dtype))
 
 
 @implements

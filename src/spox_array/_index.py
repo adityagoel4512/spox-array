@@ -16,9 +16,9 @@ def _int_or_none_or_elipsis(x) -> bool:
 def normalize_index(
     index,
     rank: int,
-) -> Var | tuple[dict[tuple[int, int, int], slice], dict[int, int]]:
+) -> Var | tuple[dict[tuple[int, int, int], slice], dict[int, int]] | int:
     index_ = index
-    if isinstance(index, list | np.ndarray):
+    if isinstance(index, list | np.ndarray | int):
         index = op.const(index)
     if isinstance(index, Var):
         return index
@@ -127,7 +127,7 @@ def ndindex(shape: Var) -> Var:
         for i in range(rank)
     ]
     fit_ranges = [
-        op.unsqueeze(r, op.const([j for j in range(rank) if i != j]))
+        op.unsqueeze(r, op.const([j for j in range(rank) if i != j], dtype=np.int_))
         for i, r in enumerate(ranges)
     ]
     expanded_ranges = [op.expand(r, shape) for r in fit_ranges]
@@ -138,4 +138,14 @@ def ndindex(shape: Var) -> Var:
 
 
 def setitem(var: Var, index_, updates_: Var | npt.ArrayLike) -> Var:
-    return op.scatter_nd(var, getitem(ndindex(op.shape(var)), index_), updates_)
+    indices = getitem(ndindex(op.shape(var)), index_)
+    # broadcast updates as appropriate
+    index_path_shape = op.slice(op.shape(indices), op.const([0]), op.const([-1]))
+    update_shape = op.slice(
+        op.shape(var),
+        op.gather(op.shape(indices), op.const([-1])),
+        op.const([-1]),
+    )
+    target_shape = op.concat([index_path_shape, update_shape], axis=0)
+    updates_ = op.expand(updates_, target_shape)
+    return op.scatter_nd(var, indices, updates_)

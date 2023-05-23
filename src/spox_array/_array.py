@@ -5,7 +5,7 @@ from typing import Any, cast
 import numpy as np
 import numpy.lib.mixins
 import numpy.typing as npt
-import spox.opset.ai.onnx.v17 as op
+import spox.opset.ai.onnx.v18 as op
 from spox import Var
 
 from ._index import getitem, setitem
@@ -44,7 +44,7 @@ class SpoxArray(NumpyDispatchMixin):
 
     @property
     def ndim(self) -> int:
-        return len(self.shape)
+        return len(self._var.unwrap_tensor().shape)
 
     @property
     def size(self) -> int | None:
@@ -64,6 +64,10 @@ class SpoxArray(NumpyDispatchMixin):
     def __setitem__(self, index, value) -> None:
         if isinstance(value, SpoxArray):
             value = value.__var__()
+
+        if isinstance(index, SpoxArray):
+            index = index.__var__()
+
         var, value = promote(self.__var__(), value)
         self.__var__(setitem(var, index, value))
 
