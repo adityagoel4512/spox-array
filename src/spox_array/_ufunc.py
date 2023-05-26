@@ -1,7 +1,7 @@
 import functools
 
 import numpy as np
-import spox.opset.ai.onnx.v17 as op
+import spox.opset.ai.onnx.v18 as op
 from spox import Var
 
 from ._array import implements
@@ -103,11 +103,6 @@ def isnan(x: Var) -> Var:
     if not np.issubdtype(x.unwrap_tensor().dtype, np.floating):
         return op.expand(op.const(False), op.shape(x))
     return op.isnan(x)
-
-
-@prepare_ufunc_call
-def invert(x: Var) -> Var:
-    return op.not_(x)
 
 
 # Unary - signs
@@ -241,3 +236,42 @@ def arctanh(x: Var) -> Var:
 @prepare_call
 def add_reduce(x: Var, axis: int = 0, keepdims: bool = False):
     return op.reduce_sum(x, axes=op.const([axis]), keepdims=keepdims)
+
+
+# Bit twiddling functions
+@prepare_ufunc_call
+def bitwise_and(x: Var, y: Var) -> Var:
+    if x.unwrap_tensor().dtype.kind == "b" == y.unwrap_tensor().dtype.kind:
+        return op.and_(x, y)
+    return op.bitwise_and(x, y)
+
+
+@prepare_ufunc_call
+def bitwise_or(x: Var, y: Var) -> Var:
+    if x.unwrap_tensor().dtype.kind == "b" == y.unwrap_tensor().dtype.kind:
+        return op.or_(x, y)
+    return op.bitwise_or(x, y)
+
+
+@prepare_ufunc_call
+def bitwise_xor(x: Var, y: Var) -> Var:
+    if x.unwrap_tensor().dtype.kind == "b" == y.unwrap_tensor().dtype.kind:
+        return op.xor(x, y)
+    return op.bitwise_xor(x, y)
+
+
+@prepare_ufunc_call
+def invert(x: Var) -> Var:
+    if x.unwrap_tensor().dtype.kind == "b":
+        return op.not_(x)
+    return op.bitwise_not(x)
+
+
+@prepare_ufunc_call
+def left_shift(x: Var, y: Var) -> Var:
+    return op.bit_shift(x, y, "LEFT")
+
+
+@prepare_ufunc_call
+def right_shift(x: Var, y: Var) -> Var:
+    return op.bit_shift(x, y, "RIGHT")
