@@ -91,7 +91,12 @@ def any(var: Var, axis=None) -> Var:
 @implements
 @prepare_call(array_args=0)
 def full_like(a: Var, fill_value: np.ndarray, dtype=None) -> Var:
-    result = op.constant_of_shape(op.shape(a), value=fill_value)
+    if fill_value.dtype.kind == "U":
+        # onnx does not support string constant_of_shape
+        data = op.const(fill_value, dtype=np.str_)
+        result = op.expand(data, op.shape(a))
+    else:
+        result = op.constant_of_shape(op.shape(a), value=fill_value)
     if dtype is not None:
         result = op.cast(result, to=dtype)
     return result
@@ -114,7 +119,7 @@ def broadcast_to(var: Var, shape: Var) -> Var:
 
 
 @implements
-@prepare_call
+@prepare_call(array_args=1)
 def ones_like(var: Var, dtype=None) -> Var:
     return full_like(var, np.array([1], dtype=dtype))
 

@@ -275,3 +275,26 @@ def left_shift(x: Var, y: Var) -> Var:
 @prepare_ufunc_call
 def right_shift(x: Var, y: Var) -> Var:
     return op.bit_shift(x, y, "RIGHT")
+
+
+# Boolean operators
+
+
+@prepare_ufunc_call
+def logical_and(x: Var, y: Var) -> Var:
+    return op.and_(x, y)
+
+
+@prepare_ufunc_call
+def logical_or(x: Var, y: Var) -> Var:
+    return op.or_(x, y)
+
+
+@prepare_ufunc_call
+def logical_xor(x: Var, y: Var) -> Var:
+    return op.xor(x, y)
+
+
+@prepare_ufunc_call
+def logical_not(x: Var) -> Var:
+    return op.not_(x)
